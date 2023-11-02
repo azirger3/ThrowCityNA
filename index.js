@@ -88,21 +88,48 @@ app.get("/matchByMatchID", (req, res) => {
                 KASTcontributions[cont][6] = 1000000;
             }
             for (playerStat in results.data.data.rounds[round].player_stats) {
-                console.log(results.data.data.rounds[round].player_stats[playerStat].kills);
-                console.log(results.data.data.rounds[round].player_stats[playerStat].kills > 0);
                 if (results.data.data.rounds[round].player_stats[playerStat].kills > 0) {
                     //First kill and first death. We only need to check each players first kill as kills are sorted chronologically
-                    console.log('AAAAAAAAAAAAAAAAAAAAAAA');
-                    console.log(results.data.data.rounds[round].player_stats[playerStat].kill_events[0].kill_time_in_round);
-                    console.log('BBBBBBBBBBBBBBBBBBBBBBB');
-                    console.log(FKTime);
                     if (results.data.data.rounds[round].player_stats[playerStat].kill_events[0].kill_time_in_round < FKTime) {
                         FKTime = results.data.data.rounds[round].player_stats[playerStat].kill_events[0].kill_time_in_round;
                         FKpuuid = results.data.data.rounds[round].player_stats[playerStat].kill_events[0].killer_puuid;
                         FDpuuid = results.data.data.rounds[round].player_stats[playerStat].kill_events[0].victim_puuid;
                     }
-                    // KAST kills, survival, and trades
-                    /*for (player in KASTcontributions) {
+                    // KAST kills, survival, and assists
+                    for (player in KASTcontributions) {
+                        if (KASTcontributions[player][0] == results.data.data.rounds[round].player_stats[playerStat].player_puuid) {
+                            killer = KASTcontributions[player];
+                            break;
+                        }
+                    }
+                    for (kill in results.data.data.rounds[round].player_stats[playerStat].kill_events) {
+                        for (player in KASTcontributions) {
+                            if (KASTcontributions[player][0] == results.data.data.rounds[round].player_stats[playerStat].kill_events[kill].victim_puuid) {
+                                victim = KASTcontributions[player];
+                                break;
+                            }
+                        }
+                        //Kast kills/survival
+                        if (victim != killer) {
+                            victim[5] = killer[0];
+                            victim[4] = results.data.data.rounds[round].player_stats[playerStat].kill_events[kill].kill_time_in_round;
+                            killer[2] = true;
+                        }
+                        //KAST assists
+                        for (assistant in results.data.data.rounds[round].player_stats[playerStat].kill_events[kill].assistants) {
+                            for (player in KASTcontributions) {
+                                if (KASTcontributions[player][0] == results.data.data.rounds[round].player_stats[playerStat].kill_events[kill].assistants[assistant].assistant_puuid) {
+                                    KASTcontributions[player][3] = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            //KAST trades, need to seprataely iterate through kills so that each victims kills have been entered for the purpose of computing trades.
+            for (playerStat in results.data.data.rounds[round].player_stats) {
+                if (results.data.data.rounds[round].player_stats[playerStat].kills > 0) {
+                    for (player in KASTcontributions) {
                         if (KASTcontributions[player][0] == results.data.data.rounds[round].player_stats[playerStat].player_puuid) {
                             killer = KASTcontributions[player];
                             break;
@@ -116,29 +143,16 @@ app.get("/matchByMatchID", (req, res) => {
                             }
                         }
                         if (victim != killer) {
-                            victim[5] = killer[0];
-                            victim[4] = results.data.data.rounds[round].player_stats[playerStat].kill_events[kill].kill_time_in_round;
-                            killer[2] = true;
                             for (player in KASTcontributions) {
                                 if (KASTcontributions[player][5] == victim[0]) {
                                     KASTcontributions[player][6] = results.data.data.rounds[round].player_stats[playerStat].kill_events[kill].kill_time_in_round;
                                 }
                             }
                         }
-                        //KAST assists
-                        for (assistant in results.data.data.rounds[round].player_stats[playerStat].kill_events[kill].assistants) {
-                            for (player in KASTcontributions) {
-                                if (KASTcontributions[player][0] == results.data.data.rounds[round].player_stats[playerStat].kill_events[kill].assistants[assistant].assistant_puuid) {
-                                    KASTcontributions[player][3] = true;
-                                }
-                            }
-                        }
-                    }*/
+                    }
                 }
             }
             // Updating FK, FD, and KAST
-            console.log(FKpuuid);
-            console.log(FDpuuid);
             for (player in statsArr) {
                 if (statsArr[player][0] == FKpuuid) {
                     statsArr[player][1]++;
@@ -146,13 +160,17 @@ app.get("/matchByMatchID", (req, res) => {
                 if (statsArr[player][0] == FDpuuid) {
                     statsArr[player][2]++;
                 }
-                /*for (KCon in KASTcontributions) {
+                for (KCon in KASTcontributions) {
                     if (KASTcontributions[KCon][0] == statsArr[player][0]) {
-                        if (KASTcontributions[KCon][2] || KASTcontributions[KCon][3] || (KASTcontributions[KCon][5] == '') || (KASTcontributions[KCon][6] - KASTcontributions[KCon][4] < 5000)) {
+                        if (KASTcontributions[KCon][2] || KASTcontributions[KCon][3] || (KASTcontributions[KCon][5] == '') || ((KASTcontributions[KCon][6] - KASTcontributions[KCon][4] < 5000) && (KASTcontributions[KCon][6] - KASTcontributions[KCon][4] > 0))) {
                             statsArr[player][3]++;
                         }
+                        if (KASTcontributions[KCon][0] == '6c264b02-02c1-5cff-b5c6-ea75a73bb06a') {
+                            console.log(KASTcontributions[KCon]);
+                            console.log((KASTcontributions[KCon][2] || KASTcontributions[KCon][3] || (KASTcontributions[KCon][5] == '') || ((KASTcontributions[KCon][6] - KASTcontributions[KCon][4] < 5000) && (KASTcontributions[KCon][6] - KASTcontributions[KCon][4] > 0))));
+                        }
                     }
-                }*/
+                }
             }
         }
 
@@ -302,16 +320,11 @@ app.get("/matchByMatchID", (req, res) => {
             playerArr.push('B' == winner);
             returnData.TeamB.push(playerArr);
         }
-        //console.log(returnData);
-        /*console.log(AAgents);
-        console.log(BAgents);
-        console.log(results.data.data.players.blue[0].character);
-        console.log((AAgents.includes(results.data.data.players.blue[0].character)));*/
 
         res.status(201).json({
             status: 'success',
             usefulData: returnData,
-            data: results.data.data,
+            //data: results.data.data, full data recieved, no longer needed, but still here in case of future troubleshooting.
             message: 'data fetched successfully',
         });
     })
